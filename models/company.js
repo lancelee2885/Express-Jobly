@@ -18,16 +18,17 @@ class Company {
 
   static async create({ handle, name, description, numEmployees, logoUrl }) {
     const duplicateCheck = await db.query(
-        `SELECT handle
+      `SELECT handle
            FROM companies
            WHERE handle = $1`,
-        [handle]);
+      [handle]
+    );
 
     if (duplicateCheck.rows[0])
       throw new BadRequestError(`Duplicate company: ${handle}`);
 
     const result = await db.query(
-        `INSERT INTO companies(
+      `INSERT INTO companies(
           handle,
           name,
           description,
@@ -36,13 +37,7 @@ class Company {
            VALUES
              ($1, $2, $3, $4, $5)
            RETURNING handle, name, description, num_employees AS "numEmployees", logo_url AS "logoUrl"`,
-        [
-          handle,
-          name,
-          description,
-          numEmployees,
-          logoUrl,
-        ],
+      [handle, name, description, numEmployees, logoUrl]
     );
     const company = result.rows[0];
 
@@ -54,15 +49,24 @@ class Company {
    * Returns [{ handle, name, description, numEmployees, logoUrl }, ...]
    * */
 
-  static async findAll() {
+  static async findAll(filterBy = "") {
+    if (
+      req.query.minEmployees ||
+      req.query.maxEmployees ||
+      req.query.nameLike
+    ) {
+      const filterClause = this.filterByClause();
+    }
+
     const companiesRes = await db.query(
-        `SELECT handle,
+      `SELECT handle,
                 name,
                 description,
                 num_employees AS "numEmployees",
                 logo_url AS "logoUrl"
            FROM companies
-           ORDER BY name`);
+           ORDER BY name`
+    );
     return companiesRes.rows;
   }
 
@@ -76,14 +80,15 @@ class Company {
 
   static async get(handle) {
     const companyRes = await db.query(
-        `SELECT handle,
+      `SELECT handle,
                 name,
                 description,
                 num_employees AS "numEmployees",
                 logo_url AS "logoUrl"
            FROM companies
            WHERE handle = $1`,
-        [handle]);
+      [handle]
+    );
 
     const company = companyRes.rows[0];
 
@@ -105,12 +110,10 @@ class Company {
    */
 
   static async update(handle, data) {
-    const { setCols, values } = sqlForPartialUpdate(
-        data,
-        {
-          numEmployees: "num_employees",
-          logoUrl: "logo_url",
-        });
+    const { setCols, values } = sqlForPartialUpdate(data, {
+      numEmployees: "num_employees",
+      logoUrl: "logo_url",
+    });
     const handleVarIdx = "$" + (values.length + 1);
 
     const querySql = `
@@ -133,16 +136,42 @@ class Company {
 
   static async remove(handle) {
     const result = await db.query(
-        `DELETE
+      `DELETE
            FROM companies
            WHERE handle = $1
            RETURNING handle`,
-        [handle]);
+      [handle]
+    );
     const company = result.rows[0];
 
     if (!company) throw new NotFoundError(`No company: ${handle}`);
   }
-}
 
+  static async filterByClause() {
+    // TODO: validate values for min, max, nameLike
+    // TODO: Refactor
+    const { minEmployees, maxEmployees, nameLike } = req.query;
+    let whereClause = ["WHERE"];
+    if (minEmployees) whereClause.push(`num_employees >= ${minEmployees}`);
+    if (maxEmployees) whereClause.push(`num_employees <= ${maxEmployees}`);
+    if (nameLike) whereClause.push(`name LIKE '%${nameLike}%'`);
+    // case 1: no args --> doesnt reach function
+    // case 2: only 1 --> no commas [WHERE, ]
+    if (whereClause.length === 2) {
+      return whereClause.join(" ");
+    }
+    // case 3: 2 args --> one comma
+    else if (whereClause.length === 3) {
+      return whereClause.splice(1, 0, "AND").join(" ");
+    }
+    // case 4: all 3 --> two commas
+    else if (whereClause.length === 4) {
+      whereClause.splice(1, 0, "AND");
+      whereClause.splice(2, 0, "AND");
+      return whereClause.join(" ");
+    }
+    // WHERE min, max, like
+  }
+}
 
 module.exports = Company;
