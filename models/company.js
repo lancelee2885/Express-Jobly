@@ -49,13 +49,14 @@ class Company {
    * Returns [{ handle, name, description, numEmployees, logoUrl }, ...]
    * */
 
-  static async findAll(filterBy = "") {
+  static async findAll(filters) {
+    let filterClause = "";
     if (
-      req.query.minEmployees ||
-      req.query.maxEmployees ||
-      req.query.nameLike
+      filters.minEmployees ||
+      filters.maxEmployees ||
+      filters.nameLike
     ) {
-      const filterClause = this.filterByClause();
+      filterClause = this.filterByClause(filters);
     }
 
     const companiesRes = await db.query(
@@ -65,6 +66,7 @@ class Company {
                 num_employees AS "numEmployees",
                 logo_url AS "logoUrl"
            FROM companies
+           ${filterClause}
            ORDER BY name`
     );
     return companiesRes.rows;
@@ -147,10 +149,10 @@ class Company {
     if (!company) throw new NotFoundError(`No company: ${handle}`);
   }
 
-  static async filterByClause() {
+  static filterByClause({ minEmployees, maxEmployees, nameLike }) {
     // TODO: validate values for min, max, nameLike
     // TODO: Refactor
-    const { minEmployees, maxEmployees, nameLike } = req.query;
+    // const { minEmployees, maxEmployees, nameLike } = req.query;
     let whereClause = ["WHERE"];
     if (minEmployees) whereClause.push(`num_employees >= ${minEmployees}`);
     if (maxEmployees) whereClause.push(`num_employees <= ${maxEmployees}`);
@@ -162,12 +164,13 @@ class Company {
     }
     // case 3: 2 args --> one comma
     else if (whereClause.length === 3) {
-      return whereClause.splice(1, 0, "AND").join(" ");
+      whereClause.splice(2, 0, "AND");
+      return whereClause.join(" ");
     }
     // case 4: all 3 --> two commas
     else if (whereClause.length === 4) {
-      whereClause.splice(1, 0, "AND");
       whereClause.splice(2, 0, "AND");
+      whereClause.splice(4, 0, "AND");
       return whereClause.join(" ");
     }
     // WHERE min, max, like
