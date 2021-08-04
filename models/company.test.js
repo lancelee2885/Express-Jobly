@@ -89,7 +89,6 @@ describe("findAll", function () {
 
   test("works: 1 filters", async function () {
     let filters = { nameLike:"1" };
-    // console.log("###########FILTERS", Company.filterByClause(filters))
     let companies = await Company.findAll(filters);
     expect(companies).toEqual([
       {
@@ -104,7 +103,6 @@ describe("findAll", function () {
 
   test("works: 2 filters", async function () {
     let filters = { minEmployees: 2, maxEmployees: 3 };
-    // console.log("###########FILTERS", Company.filterByClause(filters))
     let companies = await Company.findAll(filters);
     expect(companies).toEqual([
       {
@@ -136,6 +134,16 @@ describe("findAll", function () {
         logoUrl: "http://c2.img",
       },
     ]);
+  });
+
+  test("maxEmployees > minEmployees", async function () {
+    try{
+      let filters = { minEmployees: 3, maxEmployees: 2, nameLike: "2" };
+      await Company.findAll(filters);
+      fail()
+    } catch (err) {
+      expect(err instanceof BadRequestError).toBeTruthy();
+    }
   });
 
   

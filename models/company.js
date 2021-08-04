@@ -149,31 +149,28 @@ class Company {
     if (!company) throw new NotFoundError(`No company: ${handle}`);
   }
 
+  /**
+   *  Given an obj of filters (minEmployees, maxEmployees, or nameLike)
+   *  Return a string of sql WHERE clause that can be used in findAll()
+   */
+
   static filterByClause({ minEmployees, maxEmployees, nameLike }) {
-    // TODO: validate values for min, max, nameLike
-    // TODO: Refactor
-    // const { minEmployees, maxEmployees, nameLike } = req.query;
-    let whereClause = ["WHERE"];
+    minEmployees = Number(minEmployees);
+    maxEmployees = Number(maxEmployees);
+    
+    let whereClause = [];
+
+    if (maxEmployees < minEmployees){
+      throw new BadRequestError("maxEmployees has to be greater than minEmployees");
+    }
+
     if (minEmployees) whereClause.push(`num_employees >= ${minEmployees}`);
     if (maxEmployees) whereClause.push(`num_employees <= ${maxEmployees}`);
     if (nameLike) whereClause.push(`name LIKE '%${nameLike}%'`);
-    // case 1: no args --> doesnt reach function
-    // case 2: only 1 --> no commas [WHERE, ]
-    if (whereClause.length === 2) {
-      return whereClause.join(" ");
-    }
-    // case 3: 2 args --> one comma
-    else if (whereClause.length === 3) {
-      whereClause.splice(2, 0, "AND");
-      return whereClause.join(" ");
-    }
-    // case 4: all 3 --> two commas
-    else if (whereClause.length === 4) {
-      whereClause.splice(2, 0, "AND");
-      whereClause.splice(4, 0, "AND");
-      return whereClause.join(" ");
-    }
-    // WHERE min, max, like
+
+    whereClause = whereClause.join(" AND ");
+
+    return "WHERE " + whereClause
   }
 }
 

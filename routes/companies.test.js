@@ -4,6 +4,9 @@ const request = require("supertest");
 
 const db = require("../db");
 const app = require("../app");
+// const axios = require("axios");
+// const AxiosMockAdapter = require("axios-mock-adapter");
+// const axiosMock = new AxiosMockAdapter(axios); 
 
 const {
   commonBeforeAll,
@@ -113,6 +116,32 @@ describe("GET /companies", function () {
 
     const resp = await request(app).get("/companies").query(query);
     expect(resp.statusCode).toEqual(400);
+  });
+
+  test("ok for valid filter", async function () {
+    const query = {
+      minEmployees: 2,
+      maxEmployees: 3,
+      nameLike: "2"
+    };
+    const resp = await request(app).get("/companies").query(query);
+    expect(resp.body).toEqual({
+      companies: [
+        {
+          handle: "c2",
+          name: "C2",
+          description: "Desc2",
+          numEmployees: 2,
+          logoUrl: "http://c2.img",
+        },
+      ],
+    });
+
+    // axiosMock.onGet("/companies")
+    //     .reply(200, { mock: "works" });
+
+    // const resp = await request(app).get("/companies").query(query);
+    // expect(resp).toEqual("works");
   });
 });
 

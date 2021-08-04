@@ -47,14 +47,27 @@ router.post("/", ensureLoggedIn, async function (req, res, next) {
  */
 
 router.get("/", async function (req, res, next) {
-  const validator = jsonschema.validate(req.query, companyFilter);
-  console.log(req.query);
-  console.log("------------validator for route:", validator.valid, validator);
+
+  // TODO: req.query is IMMUTABLE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  const searchData = {...req.query}
+
+  if ("minEmployees" in req.query) {
+    searchData.minEmployees = Number(req.query.minEmployees);
+
+  }
+
+  if ("maxEmployees" in req.query) {
+    searchData.maxEmployees = Number(searchData.maxEmployees);
+  };
+
+  const validator = jsonschema.validate(searchData, companyFilter);
+  
   if (!validator.valid) {
     const errs = validator.errors.map((e) => e.stack);
     throw new BadRequestError(errs);
   }
-  const filterBy = req.query;
+  const filterBy = searchData;
   const companies = await Company.findAll(filterBy);
   return res.json({ companies });
 });
