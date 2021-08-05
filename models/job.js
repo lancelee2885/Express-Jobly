@@ -16,13 +16,18 @@ class Job {
    * */
 
   static async create({ title, salary, equity, companyHandle }) {
+
+    if (!title || !companyHandle){
+      throw new BadRequestError("title or companyHandle is missing")
+    }
+
     const result = await db.query(
       `
       INSERT INTO jobs(
         title,
         salary,
         equity,
-        company_handle),
+        company_handle)
         VALUES 
           ($1, $2, $3, $4)
         RETURNING 
@@ -48,7 +53,7 @@ class Job {
    */
 
   static async findAll() {
-    const results = db.query(
+    const results = await db.query(
       ` SELECT id, 
                title,
                salary,
@@ -70,7 +75,7 @@ class Job {
    *                       {id, title, salary...}
    */
   static async get(id) {
-    const result = db.query(`
+    const result = await db.query(`
       SELECT id, 
              title,
              salary,
@@ -104,19 +109,19 @@ class Job {
     
     if ("id" in data || "companyHandle" in data) throw new BadRequestError('Cannot change job id!');
 
-    const {setCols, values} = sqlForParialUpdate(data,{});
+    const {setCols, values} = sqlForPartialUpdate(data,{});
     const handleVarIdx = "$" + (values.length + 1); 
 
     const result = await db.query(`
         UPDATE jobs 
         SET ${setCols}
-        WHERE id=${handleVarIdx};
+        WHERE id=${handleVarIdx}
         RETURNING
           id , title, salary, equity, company_handle AS "companyHandle" 
       `,
        [...values, id]
     );
-    const job = results.rows[0];
+    const job = result.rows[0];
     if (!job) throw new NotFoundError(`No job id: ${id}`);
     return job;
   }
