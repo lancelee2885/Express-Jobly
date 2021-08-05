@@ -91,14 +91,44 @@ describe("findAll", function () {
     ]);
   });
 
-  //filter by title j1 {title: "j1"}
-  test("works: 1 filter", async function () {
+  test("works: no filter", async function () {
+    let filter = {}
     let jobs = await Job.findAll(filter);
     expect(jobs).toEqual([
       {
         id: expect.any(Number),
         title: "j1",
-        salary: 100000,
+        salary: 110000,
+        equity: "0",
+        companyHandle: "c1"
+      },
+      {
+        id: expect.any(Number),
+        title: "j2",
+        salary: 120000,
+        equity: "0",
+        companyHandle: "c2"
+      },
+      {
+        id: expect.any(Number),
+        title: "j3",
+        salary: 130000,
+        equity: "1",
+        companyHandle: "c3"
+      },
+    ])
+  });
+
+  test("works: 1 filter", async function () {
+    let filter = {
+      title: "j1",
+    }
+    let jobs = await Job.findAll(filter);
+    expect(jobs).toEqual([
+      {
+        id: expect.any(Number),
+        title: "j1",
+        salary: 110000,
         equity: "0",
         companyHandle: "c1"
       }
@@ -108,6 +138,10 @@ describe("findAll", function () {
   //filter by minSalary 100000 and have equity 
   //{minSalary >= 100000, hasEquity: true}
   test("works: 2 filter", async function () {
+    let filter = {
+      minSalary: 100000,
+      hasEquity: true,
+    }
     let jobs = await Job.findAll(filter);
     expect(jobs).toEqual([
       {
@@ -123,19 +157,11 @@ describe("findAll", function () {
   //filter by minSalary 100000 and have equity and title j3 
   //{title: "j1", hasEquity: false, minSalary: 90000}
   test("works: 3 filter", async function () {
-    let jobs = await Job.findAll(filter);
-    expect(jobs).toEqual([
-      {
-        id: expect.any(Number),
-        title: "j1",
-        salary: 110000,
-        equity: "0",
-        companyHandle: "c1"
-      }
-    ])
-  });
-
-  test("invalid: invalid filter", async function () {
+    let filter = {
+      minSalary: 100000,
+      hasEquity: false,
+      title: "j1",
+    }
     let jobs = await Job.findAll(filter);
     expect(jobs).toEqual([
       {

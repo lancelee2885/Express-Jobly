@@ -52,18 +52,94 @@ class Job {
    *                   [{ id, title,...}...]
    */
 
-  static async findAll() {
-    const results = await db.query(
-      ` SELECT id, 
-               title,
-               salary,
-               equity,
-               company_handle AS "companyHandle"
-        FROM jobs
-      `
-    );
-    const jobs = results.rows;
-    return jobs;
+  /** Find all jobs with or without filter.
+   *
+   * When given an object of filters:
+   *    returns filtered list of companies with details
+   *    [{ id, title, salary, equity, companyHandle }, ...]
+   *
+   * When not given any parameter:
+   *    return list of all companies in database
+   *    [{ id, title, salary, equity, companyHandle }, ...]
+   *
+   * @param {obj} filters --- optional: { title: 'c1', minSalary: 50000, hasEquity: true }
+   *
+   * */
+
+  static async findAll(filters) {
+
+    let filterClause, sqlQuery;
+    if (
+      filters &&
+      (filters.title || filters.minSalary || filters.hasEquity)
+    ) {
+      filterClause = this._filterByClause(filters);
+    }
+
+    let selectSQL = `SELECT id,
+                    title,
+                    salary,
+                    equity,
+                    company_handle AS "companyHandle"
+                    FROM jobs`;
+    let whereSQL = `WHERE`;
+
+    if (filterClause === undefined) {
+      sqlQuery = selectSQL;
+    } else {
+      sqlQuery =
+        selectSQL +
+        " " +
+        whereSQL +
+        " " +
+        filterClause.colIdx;
+    }
+
+    let values = filterClause === undefined ? null : filterClause.values;
+
+    const jobsRes = await db.query(sqlQuery, values);
+
+    return jobsRes.rows;
+  }
+
+  /**
+   *  Given an obj of filters (title, minSalary, or hasEquity)
+   *  Return { colIdx, values } where colIdx is for WHERE clause of findAll()
+   *  and values are actual value for filtering
+   *
+   * @returns {object}  {$1:filterValue}
+   */
+
+  // NOTE: use _ to signify it is an internal use only
+  static _filterByClause({ title, minSalary, hasEquity }) {
+    let colIdx = [];
+    let values = [];
+
+    let idx = 1;
+    if (title) {
+      colIdx.push(`title ILIKE $${idx}`);
+      values.push(`%${title}%`);
+      idx++;
+    }
+    if (minSalary) {
+      colIdx.push(`salary >= $${idx}`);
+      values.push(minSalary);
+      idx++;
+    }
+    if (hasEquity) {
+      colIdx.push(`equity > $${idx}`);
+      values.push(0);
+      idx++;
+    }
+    if (hasEquity === false) {
+      colIdx.push(`equity = $${idx}`);
+      values.push(0);
+      idx++;
+    }
+
+    colIdx = colIdx.join(" AND ");
+
+    return { colIdx, values };
   }
 
   /**get
