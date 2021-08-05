@@ -46,25 +46,24 @@ class Company {
   }
 
   /** Find all companies.
-   *  
+   *
    * When given an object of filters:
    *    returns filtered list of companies with details
    *    [{ handle, name, description, numEmployees, logoUrl }, ...]
-   *  
+   *
    * When not given any parameter:
    *    return list of all companies in database
    *    [{ handle, name, description, numEmployees, logoUrl }, ...]
-   * 
+   *
    * @param {obj} filters --- optional: { minEmployees: 2, maxEmployees: 3, nameLike: "2" }
-   * 
+   *
    * */
 
   static async findAll(filters) {
     let filterClause, sqlQuery;
-    if ( filters &&
-      (filters.minEmployees ||
-      filters.maxEmployees ||
-      filters.nameLike)
+    if (
+      filters &&
+      (filters.minEmployees || filters.maxEmployees || filters.nameLike)
     ) {
       filterClause = this._filterByClause(filters);
     }
@@ -80,15 +79,15 @@ class Company {
 
     if (filterClause === undefined) {
       sqlQuery = selectSQL + " " + orderBySQL;
-
     } else {
-      sqlQuery = selectSQL 
-        + " " 
-        + whereSQL
-        + " "
-        + filterClause.colIdx
-        + " "
-        + orderBySQL;
+      sqlQuery =
+        selectSQL +
+        " " +
+        whereSQL +
+        " " +
+        filterClause.colIdx +
+        " " +
+        orderBySQL;
     }
 
     let values = filterClause === undefined ? null : filterClause.values;
@@ -99,23 +98,24 @@ class Company {
   }
 
   /**
- *  Given an obj of filters (minEmployees, maxEmployees, or nameLike)
- *  Return a string of sql WHERE clause that can be used in findAll()
- * 
- * @returns {object}  {$1:filterValue}
- */
+   *  Given an obj of filters (minEmployees, maxEmployees, or nameLike)
+   *  Return a string of sql WHERE clause that can be used in findAll()
+   *
+   * @returns {object}  {$1:filterValue}
+   */
 
-  // NOTE: use _ to signify it is an internal use only  
+  // NOTE: use _ to signify it is an internal use only
   static _filterByClause({ minEmployees, maxEmployees, nameLike }) {
-
     let colIdx = [];
     let values = [];
 
     if (maxEmployees < minEmployees) {
-      throw new BadRequestError("maxEmployees has to be greater than minEmployees");
+      throw new BadRequestError(
+        "maxEmployees has to be greater than minEmployees"
+      );
     }
-    
-    let idx = 1
+
+    let idx = 1;
     if (minEmployees) {
       colIdx.push(`num_employees >= $${idx}`);
       values.push(minEmployees);
@@ -132,12 +132,10 @@ class Company {
       idx++;
     }
 
-    colIdx = colIdx.join(' AND ');
+    colIdx = colIdx.join(" AND ");
 
     return { colIdx, values };
-
   }
-
 
   /** Given a company handle, return data about company.
    *
@@ -215,8 +213,6 @@ class Company {
 
     if (!company) throw new NotFoundError(`No company: ${handle}`);
   }
-
-
 }
 
 module.exports = Company;
