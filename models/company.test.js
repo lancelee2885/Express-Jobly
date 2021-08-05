@@ -59,6 +59,34 @@ describe("create", function () {
 /************************************** findAll */
 
 describe("findAll", function () {
+
+  test("works: not passing in filters as argument", async function () {
+    let companies = await Company.findAll();
+    expect(companies).toEqual([
+      {
+        handle: "c1",
+        name: "C1",
+        description: "Desc1",
+        numEmployees: 1,
+        logoUrl: "http://c1.img",
+      },
+      {
+        handle: "c2",
+        name: "C2",
+        description: "Desc2",
+        numEmployees: 2,
+        logoUrl: "http://c2.img",
+      },
+      {
+        handle: "c3",
+        name: "C3",
+        description: "Desc3",
+        numEmployees: 3,
+        logoUrl: "http://c3.img",
+      },
+    ]);
+  });
+
   test("works: no filter", async function () {
     let filters = {};
     let companies = await Company.findAll(filters);
@@ -88,7 +116,7 @@ describe("findAll", function () {
   });
 
   test("works: 1 filters", async function () {
-    let filters = { nameLike:"1" };
+    let filters = { nameLike: "1" };
     let companies = await Company.findAll(filters);
     expect(companies).toEqual([
       {
@@ -137,7 +165,7 @@ describe("findAll", function () {
   });
 
   test("maxEmployees > minEmployees", async function () {
-    try{
+    try {
       let filters = { minEmployees: 3, maxEmployees: 2, nameLike: "2" };
       await Company.findAll(filters);
       fail()
@@ -146,7 +174,7 @@ describe("findAll", function () {
     }
   });
 
-  
+
 });
 
 /************************************** get */
@@ -273,8 +301,12 @@ describe("remove", function () {
 
 describe("filterByClause", function () {
   test("valid", function () {
-    const filters = { minEmployees: 2, maxEmployees: 3, nameLike: "2" }
-    const result = Company.filterByClause(filters)
-    expect(result).toEqual("WHERE num_employees >= 2 AND num_employees <= 3 AND name LIKE '%2%'")
-  })
-})
+    const filters = { minEmployees: 2, maxEmployees: 3, nameLike: "2" };
+    const result = Company._filterByClause(filters);
+    console.log("##################################", result)
+    expect(result).toEqual({
+      "colIdx": "num_employees >= $1 AND num_employees <= $2 AND name ILIKE $3",
+      "values": [2, 3, "%2%"]
+    });
+  });
+});

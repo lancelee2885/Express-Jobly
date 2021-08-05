@@ -46,8 +46,17 @@ class Company {
   }
 
   /** Find all companies.
-   *
-   * Returns [{ handle, name, description, numEmployees, logoUrl }, ...]
+   *  
+   * When given an object of filters:
+   *    returns filtered list of companies with details
+   *    [{ handle, name, description, numEmployees, logoUrl }, ...]
+   *  
+   * When not given any parameter:
+   *    return list of all companies in database
+   *    [{ handle, name, description, numEmployees, logoUrl }, ...]
+   * 
+   * @param {obj} filters --- optional: { minEmployees: 2, maxEmployees: 3, nameLike: "2" }
+   * 
    * */
 
   // TODO: lines 64, should pass nothing into findAll. Update docstring for findAll
@@ -55,10 +64,10 @@ class Company {
 
   static async findAll(filters) {
     let filterClause, sqlQuery;
-    if (
-      filters.minEmployees ||
+    if ( filters &&
+      (filters.minEmployees ||
       filters.maxEmployees ||
-      filters.nameLike
+      filters.nameLike)
     ) {
       filterClause = this._filterByClause(filters);
     }
@@ -76,14 +85,16 @@ class Company {
       sqlQuery = selectSQL + " " + orderBySQL;
 
     } else {
-      sqlQuery = whereSQL
+      sqlQuery = selectSQL 
+        + " " 
+        + whereSQL
         + " "
         + filterClause.colIdx
         + " "
         + orderBySQL;
     }
 
-    let values = filterClause === undefined ? [] : filterClause.values;
+    let values = filterClause === undefined ? null : filterClause.values;
 
     const companiesRes = await db.query(sqlQuery, values);
 
@@ -97,41 +108,37 @@ class Company {
  * @returns {object}  {$1:filterValue}
  */
 
-  // TODO: move closer to where the filter is being used
   // NOTE: use _ to signify it is an internal use only  
   static _filterByClause({ minEmployees, maxEmployees, nameLike }) {
-    let obj = {}; // TODO: rename
+
+    let colIdx = [];
+    let values = [];
+
     if (maxEmployees < minEmployees) {
       throw new BadRequestError("maxEmployees has to be greater than minEmployees");
     }
-    /// SQL injection issue. Use the sqlForUpdate 
-    // if (minEmployees) whereClause.push(`num_employees >= ${minEmployees}`);
-    // if (maxEmployees) whereClause.push(`num_employees <= ${maxEmployees}`);
-    // if (nameLike) whereClause.push(`name LIKE '%${nameLike}%'`); // TODO: use ILIKE
+    
     let idx = 1
     if (minEmployees) {
-      obj[`num_employees >= $${idx}`] = minEmployees;
+      colIdx.push(`num_employees >= $${idx}`);
+      values.push(minEmployees);
       idx++;
     }
     if (maxEmployees) {
-      obj[`num_employees <= $${idx}`] = maxEmployees;
+      colIdx.push(`num_employees <= $${idx}`);
+      values.push(maxEmployees);
       idx++;
     }
     if (nameLike) {
-      obj[`name ILIKE '$${idx}'`] = `%$${nameLike}%`;
+      colIdx.push(`name ILIKE $${idx}`);
+      values.push(`%${nameLike}%`);
       idx++;
     }
 
-    const colIdx = Object.keys(obj).join(' AND ');
-    const values = Object.values(obj);
+    colIdx = colIdx.join(' AND ');
 
     return { colIdx, values };
-    // WHERE nums_employees >= $1 AND nums_employees  <= $2 AND name ILIKE $3
 
-    // whereClause = whereClause.join(" AND ");
-
-
-    // return "WHERE " + whereClause
   }
 
 
