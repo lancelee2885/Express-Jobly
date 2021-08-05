@@ -59,9 +59,6 @@ class Company {
    * 
    * */
 
-  // TODO: lines 64, should pass nothing into findAll. Update docstring for findAll
-  // and _filterByClause
-
   static async findAll(filters) {
     let filterClause, sqlQuery;
     if ( filters &&
