@@ -1,5 +1,6 @@
 "use strict";
 
+const e = require("cors");
 const db = require("../db");
 const { BadRequestError, NotFoundError } = require("../expressError");
 const { sqlForPartialUpdate } = require("../helpers/sql");
@@ -49,28 +50,90 @@ class Company {
    * Returns [{ handle, name, description, numEmployees, logoUrl }, ...]
    * */
 
+  // TODO: lines 64, should pass nothing into findAll. Update docstring for findAll
+  // and _filterByClause
+
   static async findAll(filters) {
-    let filterClause = "";
+    let filterClause, sqlQuery;
     if (
       filters.minEmployees ||
       filters.maxEmployees ||
       filters.nameLike
     ) {
-      filterClause = this.filterByClause(filters);
+      filterClause = this._filterByClause(filters);
     }
 
-    const companiesRes = await db.query(
-      `SELECT handle,
-                name,
-                description,
-                num_employees AS "numEmployees",
-                logo_url AS "logoUrl"
-           FROM companies
-           ${filterClause}
-           ORDER BY name`
-    );
+    let selectSQL = `SELECT handle,
+                    name,
+                    description,
+                    num_employees AS "numEmployees",
+                    logo_url AS "logoUrl"
+                    FROM companies`;
+    let orderBySQL = `ORDER BY name`;
+    let whereSQL = `WHERE`;
+
+    if (filterClause === undefined) {
+      sqlQuery = selectSQL + " " + orderBySQL;
+
+    } else {
+      sqlQuery = whereSQL
+        + " "
+        + filterClause.colIdx
+        + " "
+        + orderBySQL;
+    }
+
+    let values = filterClause === undefined ? [] : filterClause.values;
+
+    const companiesRes = await db.query(sqlQuery, values);
+
     return companiesRes.rows;
   }
+
+  /**
+ *  Given an obj of filters (minEmployees, maxEmployees, or nameLike)
+ *  Return a string of sql WHERE clause that can be used in findAll()
+ * 
+ * @returns {object}  {$1:filterValue}
+ */
+
+  // TODO: move closer to where the filter is being used
+  // NOTE: use _ to signify it is an internal use only  
+  static _filterByClause({ minEmployees, maxEmployees, nameLike }) {
+    let obj = {}; // TODO: rename
+    if (maxEmployees < minEmployees) {
+      throw new BadRequestError("maxEmployees has to be greater than minEmployees");
+    }
+    /// SQL injection issue. Use the sqlForUpdate 
+    // if (minEmployees) whereClause.push(`num_employees >= ${minEmployees}`);
+    // if (maxEmployees) whereClause.push(`num_employees <= ${maxEmployees}`);
+    // if (nameLike) whereClause.push(`name LIKE '%${nameLike}%'`); // TODO: use ILIKE
+    let idx = 1
+    if (minEmployees) {
+      obj[`num_employees >= $${idx}`] = minEmployees;
+      idx++;
+    }
+    if (maxEmployees) {
+      obj[`num_employees <= $${idx}`] = maxEmployees;
+      idx++;
+    }
+    if (nameLike) {
+      obj[`name ILIKE '$${idx}'`] = `%$${nameLike}%`;
+      idx++;
+    }
+
+    const colIdx = Object.keys(obj).join(' AND ');
+    const values = Object.values(obj);
+
+    return { colIdx, values };
+    // WHERE nums_employees >= $1 AND nums_employees  <= $2 AND name ILIKE $3
+
+    // whereClause = whereClause.join(" AND ");
+
+
+    // return "WHERE " + whereClause
+  }
+
 
   /** Given a company handle, return data about company.
    *
@@ -149,29 +212,7 @@ class Company {
     if (!company) throw new NotFoundError(`No company: ${handle}`);
   }
 
-  /**
-   *  Given an obj of filters (minEmployees, maxEmployees, or nameLike)
-   *  Return a string of sql WHERE clause that can be used in findAll()
-   */
 
-  static filterByClause({ minEmployees, maxEmployees, nameLike }) {
-    minEmployees = Number(minEmployees);
-    maxEmployees = Number(maxEmployees);
-    
-    let whereClause = [];
-
-    if (maxEmployees < minEmployees){
-      throw new BadRequestError("maxEmployees has to be greater than minEmployees");
-    }
-
-    if (minEmployees) whereClause.push(`num_employees >= ${minEmployees}`);
-    if (maxEmployees) whereClause.push(`num_employees <= ${maxEmployees}`);
-    if (nameLike) whereClause.push(`name LIKE '%${nameLike}%'`);
-
-    whereClause = whereClause.join(" AND ");
-
-    return "WHERE " + whereClause
-  }
 }
 
 module.exports = Company;

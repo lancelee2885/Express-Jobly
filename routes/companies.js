@@ -38,7 +38,7 @@ router.post("/", ensureLoggedIn, async function (req, res, next) {
 /** GET /  =>
  *   { companies: [ { handle, name, description, numEmployees, logoUrl }, ...] }
  *
- * Can filter on provided search filters:
+ * Can filter on provide filters:
  * - minEmployees
  * - maxEmployees
  * - nameLike (will find case-insensitive, partial matches)
@@ -47,27 +47,25 @@ router.post("/", ensureLoggedIn, async function (req, res, next) {
  */
 
 router.get("/", async function (req, res, next) {
-
   // TODO: req.query is IMMUTABLE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  const searchData = {...req.query}
+  const query = { ...req.query };
 
-  if ("minEmployees" in req.query) {
-    searchData.minEmployees = Number(req.query.minEmployees);
-
+  if ("minEmployees" in query) {
+    query.minEmployees = Number(query.minEmployees);
   }
 
-  if ("maxEmployees" in req.query) {
-    searchData.maxEmployees = Number(searchData.maxEmployees);
-  };
+  if ("maxEmployees" in query) {
+    query.maxEmployees = Number(query.maxEmployees);
+  }
 
-  const validator = jsonschema.validate(searchData, companyFilter);
-  
+  const validator = jsonschema.validate(query, companyFilter);
+
   if (!validator.valid) {
     const errs = validator.errors.map((e) => e.stack);
     throw new BadRequestError(errs);
   }
-  const filterBy = searchData;
+  const filterBy = query;
   const companies = await Company.findAll(filterBy);
   return res.json({ companies });
 });
