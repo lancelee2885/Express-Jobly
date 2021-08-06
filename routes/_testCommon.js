@@ -74,6 +74,10 @@ async function commonBeforeAll() {
     equity: 0.34,
     companyHandle: "c2"
   });
+
+  // let result = await db.query(`SELECT id FROM jobs WHERE title = 'j1'`);
+	// var j1Id = result.rows[0].id
+
 }
 
 async function commonBeforeEach() {

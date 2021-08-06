@@ -193,7 +193,7 @@ class User {
   /** Delete given user from database; returns undefined. */
 
   static async remove(username) {
-    let result = await db.query(
+    const result = await db.query(
           `DELETE
            FROM users
            WHERE username = $1
@@ -203,8 +203,20 @@ class User {
     const user = result.rows[0];
 
     if (!user) throw new NotFoundError(`No user: ${username}`);
-  }
-}
+  };
+
+  static async applyJob(username, jobId){
+    const result = await db.query(
+      `INSERT INTO applications (username, job_id)
+              VALUES ($1, $2)
+              RETURNING username, job_id AS jobId`,
+              [username. jobId]
+    );
+    const application = result.rows[0];
+
+    
+  };
+};
 
 
 module.exports = User;

@@ -32,7 +32,7 @@ describe("POST /companies", function () {
     description: "DescNew",
     numEmployees: 10,
   };
-  
+
   const newCompany2 = {
     handle: "new2",
     name: "New2",
@@ -82,7 +82,7 @@ describe("POST /companies", function () {
     expect(resp.statusCode).toEqual(400);
   });
 
-  
+
 });
 
 /************************************** GET /companies */
@@ -176,19 +176,29 @@ describe("GET /companies/:handle", function () {
         description: "Desc1",
         numEmployees: 1,
         logoUrl: "http://c1.img",
+        "jobs": [
+          {
+            "equity": "0.34",
+            "id": expect.any(Number),
+            "salary": 100000,
+            "title": "j1",
+          },
+        ],
+
       },
     });
   });
 
   test("works for anon: company w/o jobs", async function () {
-    const resp = await request(app).get(`/companies/c2`);
+    const resp = await request(app).get(`/companies/c3`);
     expect(resp.body).toEqual({
       company: {
-        handle: "c2",
-        name: "C2",
-        description: "Desc2",
-        numEmployees: 2,
-        logoUrl: "http://c2.img",
+        handle: "c3",
+        name: "C3",
+        description: "Desc3",
+        numEmployees: 3,
+        logoUrl: "http://c3.img",
+        jobs: [],
       },
     });
   });
@@ -282,7 +292,7 @@ describe("DELETE /companies/:handle", function () {
     const resp = await request(app)
       .delete(`/companies/c1`)
       .set("authorization", `Bearer ${u2Token}`);
-      expect(resp.statusCode).toEqual(401);
+    expect(resp.statusCode).toEqual(401);
   });
 
   test("unauth for anon", async function () {

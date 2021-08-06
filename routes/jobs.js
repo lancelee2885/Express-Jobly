@@ -8,7 +8,8 @@ const express = require("express");
 const { ensureLoggedIn, ensureAdmin, ensureCorrectUserOrAdmin } = require("../middleware/auth");
 const { BadRequestError } = require("../expressError");
 const Job = require("../models/job");
-//TODO: Add schema for job 
+
+const jobFilter = require("../schemas/jobFilter.json");
 const jobNewSchema = require("../schemas/jobNew.json");
 const jobUpdateSchema = require("../schemas/jobUpdate.json");
 
@@ -37,7 +38,25 @@ const validator = jsonschema.validate(req.body, jobNewSchema);
  * DESCRIPTION: gets a list of all jobs from the database.
  */
 router.get("/", async function (req, res, next) {
-  const jobs = await Job.findAll();
+
+  const query = { ...req.query };
+
+  if ("minSalary" in query) {
+    query.minSalary = Number(query.minSalary);
+  }
+
+  if ("hasEquity" in query) {
+    query.hasEquity = JSON.parse(query.hasEquity);
+  }
+
+  const validator = jsonschema.validate(query, jobFilter);
+
+  if (!validator.valid) {
+    const errs = validator.errors.map((e) => e.stack);
+    throw new BadRequestError(errs);
+  }
+
+  const jobs = await Job.findAll(query);
   return res.json({ jobs });
 });
 

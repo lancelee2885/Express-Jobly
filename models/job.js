@@ -17,7 +17,7 @@ class Job {
 
   static async create({ title, salary, equity, companyHandle }) {
 
-    if (!title || !companyHandle){
+    if (!title || !companyHandle) {
       throw new BadRequestError("title or companyHandle is missing")
     }
 
@@ -44,7 +44,7 @@ class Job {
 
     return job;
   }
-  
+
   /**findAll
    * DESCRIPTION: returns all job postings by querying the db
    * @returns {object} list of job postings with id, title, salary, equity, and 
@@ -163,30 +163,30 @@ class Job {
       [id]
     );
     const job = result.rows[0];
-    if(!job) throw new NotFoundError('Cannot find job');
+    if (!job) throw new NotFoundError('Cannot find job');
 
     return job;
   }
 
-   /**update
-   * DESCRIPTION: Given a job id and the data user wants to update, 
-   *              the method returns an object with the job data.
-   *              The user CANNOT change the job id nor the company handle,
-   *              attempts will throw an error. If job id is not in th database
-   *              the method will throw an error. 
-   * 
-   * @param {Number} id  --- job id
-   * @param {Object} data --- data user wants to update
-   *                          {titl, salary, equity}
-   * @returns {Object} --- job data
-   *                       {id, title, salary...}
-   */
+  /**update
+  * DESCRIPTION: Given a job id and the data user wants to update, 
+  *              the method returns an object with the job data.
+  *              The user CANNOT change the job id nor the company handle,
+  *              attempts will throw an error. If job id is not in th database
+  *              the method will throw an error. 
+  * 
+  * @param {Number} id  --- job id
+  * @param {Object} data --- data user wants to update
+  *                          {titl, salary, equity}
+  * @returns {Object} --- job data
+  *                       {id, title, salary...}
+  */
   static async update(id, data) {
-    
+
     if ("id" in data || "companyHandle" in data) throw new BadRequestError('Cannot change job id!');
 
-    const {setCols, values} = sqlForPartialUpdate(data,{});
-    const handleVarIdx = "$" + (values.length + 1); 
+    const { setCols, values } = sqlForPartialUpdate(data, {});
+    const handleVarIdx = "$" + (values.length + 1);
 
     const result = await db.query(`
         UPDATE jobs 
@@ -195,21 +195,21 @@ class Job {
         RETURNING
           id , title, salary, equity, company_handle AS "companyHandle" 
       `,
-       [...values, id]
+      [...values, id]
     );
     const job = result.rows[0];
     if (!job) throw new NotFoundError(`No job id: ${id}`);
     return job;
   }
-   /**remove
-   * DESCRIPTION: Deletes the job given the job id.  If job id is not
-   *              in th database the method will throw an error. 
-   * 
-   * @param {Number} id  --- job id
-   * @param {Object} data --- data user wants to update
-   *                          {titl, salary, equity}
-   */
-  
+  /**remove
+  * DESCRIPTION: Deletes the job given the job id.  If job id is not
+  *              in th database the method will throw an error. 
+  * 
+  * @param {Number} id  --- job id
+  * @param {Object} data --- data user wants to update
+  *                          {titl, salary, equity}
+  */
+
   static async remove(id) {
     const result = await db.query(
       `DELETE
@@ -220,7 +220,19 @@ class Job {
     );
     const job = result.rows[0];
     if (!job) throw new NotFoundError(`No id: ${id}`);
-    
+
+  }
+  
+  /**
+   * DESCRIPTION: Given a job title, return job id
+   * 
+   * @param {String} job 
+   * @returns number of id corresponding to job passing in
+   */
+
+  static async getJobId(job) {
+    const result = await db.query(`SELECT id FROM jobs WHERE title = '${job}'`);
+    return result.rows[0].id
   }
 }
 
